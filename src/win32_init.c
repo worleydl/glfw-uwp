@@ -104,17 +104,22 @@ static GLFWbool loadLibraries(void)
     _glfw.win32.user32.GetSystemMetricsForDpi_ = (PFN_GetSystemMetricsForDpi)
         _glfwPlatformGetModuleSymbol(_glfw.win32.user32.instance, "GetSystemMetricsForDpi");
 
+#if !defined(_GLFW_UWP)
     _glfw.win32.dinput8.instance = _glfwPlatformLoadModule("dinput8.dll");
     if (_glfw.win32.dinput8.instance)
     {
         _glfw.win32.dinput8.Create = (PFN_DirectInput8Create)
             _glfwPlatformGetModuleSymbol(_glfw.win32.dinput8.instance, "DirectInput8Create");
     }
+#endif
 
     {
         int i;
         const char* names[] =
         {
+#if defined(_GLFW_UWP)
+            "xinputuap.dll",
+#endif
             "xinput1_4.dll",
             "xinput1_3.dll",
             "xinput9_1_0.dll",
@@ -695,8 +700,10 @@ int _glfwInitWin32(void)
     else if (IsWindowsVistaOrGreater())
         SetProcessDPIAware();
 
+#if !defined(_GLFW_UWP)
     if (!createHelperWindow())
         return GLFW_FALSE;
+#endif
 
     _glfwPollMonitorsWin32();
     return GLFW_TRUE;

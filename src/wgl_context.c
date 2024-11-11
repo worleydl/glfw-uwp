@@ -32,6 +32,13 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#if defined(_GLFW_UWP)
+// libuwp imports
+__declspec(dllimport) void* uwp_GetBundleFilePath(char* buffer, const char* filename);
+__declspec(dllimport) void* uwp_GetWindowReference();
+__declspec(dllimport) void uwp_ProcessEvents();
+#endif
+
 // Return the value corresponding to the specified attribute
 //
 static int findPixelFormatAttribValueWGL(const int* attribs,
@@ -325,6 +332,7 @@ static void makeContextCurrentWGL(_GLFWwindow* window)
 
 static void swapBuffersWGL(_GLFWwindow* window)
 {
+#if !defined(_GLFW_UWP)
     if (!window->monitor)
     {
         // HACK: Use DwmFlush when desktop composition is enabled on Windows Vista and 7
@@ -342,6 +350,10 @@ static void swapBuffersWGL(_GLFWwindow* window)
     }
 
     SwapBuffers(window->context.wgl.dc);
+#else
+    _glfw.wgl.SwapBuffers(window->context.wgl.dc);
+    uwp_ProcessEvents(); // TODO: Probably a better spot to put this
+#endif
 }
 
 static void swapIntervalWGL(int interval)
@@ -412,7 +424,13 @@ GLFWbool _glfwInitWGL(void)
     if (_glfw.wgl.instance)
         return GLFW_TRUE;
 
+#if defined(_GLFW_UWP)
+    char abs_libpath[256];
+    uwp_GetBundleFilePath(abs_libpath, "opengl32.dll");
+    _glfw.wgl.instance = LoadLibraryA(abs_libpath);
+#else
     _glfw.wgl.instance = _glfwPlatformLoadModule("opengl32.dll");
+#endif
     if (!_glfw.wgl.instance)
     {
         _glfwInputErrorWin32(GLFW_PLATFORM_ERROR,
@@ -435,12 +453,22 @@ GLFWbool _glfwInitWGL(void)
     _glfw.wgl.ShareLists = (PFN_wglShareLists)
         _glfwPlatformGetModuleSymbol(_glfw.wgl.instance, "wglShareLists");
 
+#if defined(_GLFW_UWP)
+    // UWP needs direct hookup
+    _glfw.wgl.SwapBuffers = (PFN_wglSwapBuffers)
+    GetProcAddress(_glfw.wgl.instance, "wglSwapBuffers");
+#endif
+
     // NOTE: A dummy context has to be created for opengl32.dll to load the
     //       OpenGL ICD, from which we can then query WGL extensions
     // NOTE: This code will accept the Microsoft GDI ICD; accelerated context
     //       creation failure occurs during manual pixel format enumeration
 
+#if defined(_GLFW_UWP)
+    dc = uwp_GetWindowReference();
+#else
     dc = GetDC(_glfw.win32.helperWindowHandle);
+#endif
 
     ZeroMemory(&pfd, sizeof(pfd));
     pfd.nSize = sizeof(pfd);
@@ -449,12 +477,14 @@ GLFWbool _glfwInitWGL(void)
     pfd.iPixelType = PFD_TYPE_RGBA;
     pfd.cColorBits = 24;
 
+#if !defined(_GLFW_UWP)
     if (!SetPixelFormat(dc, ChoosePixelFormat(dc, &pfd), &pfd))
     {
         _glfwInputErrorWin32(GLFW_PLATFORM_ERROR,
                              "WGL: Failed to set pixel format for dummy context");
         return GLFW_FALSE;
     }
+#endif
 
     rc = wglCreateContext(dc);
     if (!rc)
@@ -550,7 +580,11 @@ GLFWbool _glfwCreateContextWGL(_GLFWwindow* window,
     if (ctxconfig->share)
         share = ctxconfig->share->context.wgl.handle;
 
+#if defined(_GLFW_UWP)
+    window->context.wgl.dc = uwp_GetWindowReference();
+#else
     window->context.wgl.dc = GetDC(window->win32.handle);
+#endif
     if (!window->context.wgl.dc)
     {
         _glfwInputError(GLFW_PLATFORM_ERROR,
@@ -558,6 +592,8 @@ GLFWbool _glfwCreateContextWGL(_GLFWwindow* window,
         return GLFW_FALSE;
     }
 
+// You can get pixel formats to work on UWP but needs additional work
+#if !defined(_GLFW_UWP)
     pixelFormat = choosePixelFormatWGL(window, ctxconfig, fbconfig);
     if (!pixelFormat)
         return GLFW_FALSE;
@@ -576,6 +612,7 @@ GLFWbool _glfwCreateContextWGL(_GLFWwindow* window,
                              "WGL: Failed to set selected pixel format");
         return GLFW_FALSE;
     }
+#endif
 
     if (ctxconfig->client == GLFW_OPENGL_API)
     {

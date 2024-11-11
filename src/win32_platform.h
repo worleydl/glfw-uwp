@@ -336,6 +336,7 @@ typedef HDC (WINAPI * PFN_wglGetCurrentDC)(void);
 typedef HGLRC (WINAPI * PFN_wglGetCurrentContext)(void);
 typedef BOOL (WINAPI * PFN_wglMakeCurrent)(HDC,HGLRC);
 typedef BOOL (WINAPI * PFN_wglShareLists)(HGLRC,HGLRC);
+typedef BOOL (WINAPI * PFN_wglSwapBuffers)(HDC);
 #define wglCreateContext _glfw.wgl.CreateContext
 #define wglDeleteContext _glfw.wgl.DeleteContext
 #define wglGetProcAddress _glfw.wgl.GetProcAddress
@@ -343,6 +344,7 @@ typedef BOOL (WINAPI * PFN_wglShareLists)(HGLRC,HGLRC);
 #define wglGetCurrentContext _glfw.wgl.GetCurrentContext
 #define wglMakeCurrent _glfw.wgl.MakeCurrent
 #define wglShareLists _glfw.wgl.ShareLists
+#define wglSwapBuffers _glfw.wgl.SwapBuffers
 
 typedef VkFlags VkWin32SurfaceCreateFlagsKHR;
 
@@ -388,6 +390,7 @@ typedef struct _GLFWlibraryWGL
     PFN_wglGetCurrentContext            GetCurrentContext;
     PFN_wglMakeCurrent                  MakeCurrent;
     PFN_wglShareLists                   ShareLists;
+    PFN_wglSwapBuffers                  SwapBuffers;
 
     PFNWGLSWAPINTERVALEXTPROC           SwapIntervalEXT;
     PFNWGLGETPIXELFORMATATTRIBIVARBPROC GetPixelFormatAttribivARB;

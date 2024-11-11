@@ -20,6 +20,11 @@ else()
                                 posix_time.c posix_thread.c)
 endif()
 
+if (GLFW_UWP)
+    target_compile_definitions(glfw PRIVATE _GLFW_UWP)
+    target_link_libraries(glfw PRIVATE "${GLFW_SOURCE_DIR}/uwp-dep/libuwp.dll")
+endif()
+
 add_custom_target(update_mappings
     COMMAND "${CMAKE_COMMAND}" -P "${GLFW_SOURCE_DIR}/CMake/GenerateMappings.cmake" mappings.h.in mappings.h
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"

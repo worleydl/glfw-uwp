@@ -35,6 +35,11 @@
 #include <windowsx.h>
 #include <shellapi.h>
 
+#if defined(_GLFW_UWP)
+__declspec(dllimport) void* uwp_GetWindowReference();
+__declspec(dllimport) void uwp_RegisterGamepadCallbacks(void (*callback)(void));
+#endif
+
 // Returns the window style for the specified window
 //
 static DWORD getWindowStyle(const _GLFWwindow* window)
@@ -1276,6 +1281,7 @@ static int createNativeWindow(_GLFWwindow* window,
                               const _GLFWwndconfig* wndconfig,
                               const _GLFWfbconfig* fbconfig)
 {
+#if !defined(_GLFW_UWP)
     int frameX, frameY, frameWidth, frameHeight;
     WCHAR* wideTitle;
     DWORD style = getWindowStyle(window);
@@ -1396,6 +1402,9 @@ static int createNativeWindow(_GLFWwindow* window,
                                            (LPVOID) wndconfig);
 
     _glfw_free(wideTitle);
+#else
+    window->win32.handle = uwp_GetWindowReference();
+#endif
 
     if (!window->win32.handle)
     {
@@ -1406,6 +1415,7 @@ static int createNativeWindow(_GLFWwindow* window,
 
     SetPropW(window->win32.handle, L"GLFW", window);
 
+#if !defined(_GLFW_UWP)
     if (IsWindows7OrGreater())
     {
         ChangeWindowMessageFilterEx(window->win32.handle,
@@ -1415,11 +1425,13 @@ static int createNativeWindow(_GLFWwindow* window,
         ChangeWindowMessageFilterEx(window->win32.handle,
                                     WM_COPYGLOBALDATA, MSGFLT_ALLOW, NULL);
     }
+#endif
 
     window->win32.scaleToMonitor = wndconfig->scaleToMonitor;
     window->win32.keymenu = wndconfig->win32.keymenu;
     window->win32.showDefault = wndconfig->win32.showDefault;
 
+#if !defined(_GLFW_UWP)
     if (!window->monitor)
     {
         RECT rect = { 0, 0, wndconfig->width, wndconfig->height };
@@ -1485,8 +1497,14 @@ static int createNativeWindow(_GLFWwindow* window,
         updateFramebufferTransparency(window);
         window->win32.transparent = GLFW_TRUE;
     }
+#endif
 
     _glfwGetWindowSizeWin32(window, &window->win32.width, &window->win32.height);
+
+#if defined(_GLFW_UWP)
+    // Setup input handling for UWP platforms
+    uwp_RegisterGamepadCallbacks(_glfwDetectJoystickConnectionWin32);
+#endif
 
     return GLFW_TRUE;
 }
