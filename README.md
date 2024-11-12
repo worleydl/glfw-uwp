@@ -63,6 +63,12 @@ for all supported compilers on Windows and macOS.
 See the [compilation guide](https://www.glfw.org/docs/latest/compile.html) for
 more information about how to compile GLFW yourself.
 
+## UWP Support
+
+UWP builds are currently limited to mingw only.  Once the appropriate dependencies are installed you can configure the project as follows:
+`cmake -S . -B build_uwp -DGLFW_UWP=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON`
+
+The resulting build will produce library and DLL files usable in MSVC projects.
 
 ## Using GLFW
 
